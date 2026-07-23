@@ -576,16 +576,13 @@ RequestStreamedTextureDict(CROCK.mousetxt.centroDeRadar, true)
 -- =====================================================================
 -- DETECTOR DE RESOURCE (CORRIGIDO: nome da função nativa correta)
 -- =====================================================================
-function Pegar(value)
-    return Citizen.InvokeNative(0x4039b485, tostring(value),
-        Citizen.ReturnResultAnyway(), Citizen.ResultAsString())
-end
-
+-- =====================================================================
+-- API FIVEM NATIVA: GetResourceState (CORRIGIDO)
+-- docs: https://docs.fivem.net/natives/?_0x4039b485 (GetResourceState)
+-- =====================================================================
 function VerifyResource(source)
-    local s = Pegar(source)
-    local sl = Pegar(string.lower(source))
-    local su = Pegar(string.upper(source))
-    return s == 'started' or sl == 'started' or su == 'started'
+    local state = GetResourceState(tostring(source))
+    return state == 'started' or state == 'starting'
 end
 
 -- =====================================================================
@@ -692,6 +689,10 @@ end
 -- =====================================================================
 -- FUNÇÃO: DRAW TXT COLORS
 -- =====================================================================
+-- =====================================================================
+-- API FIVEM NATIVA: Desenho de Texto
+-- docs: https://docs.fivem.net/natives/?_0xCC33FA791322B9D9 (SetTextColour)
+-- =====================================================================
 function DrawTxtColors(txt, x, y, outline, size, fonte, centro, r, g, b)
     SetTextFont(4)
     if tonumber(fonte) ~= nil then SetTextFont(fonte) end
@@ -701,6 +702,25 @@ function DrawTxtColors(txt, x, y, outline, size, fonte, centro, r, g, b)
     BeginTextCommandDisplayText('STRING')
     AddTextComponentSubstringWebsite(txt)
     EndTextCommandDisplayText(x, y)
+end
+
+-- =====================================================================
+-- API FIVEM NATIVA: DrawText3D com SetDrawOrigin
+-- docs: https://docs.fivem.net/natives/?_0xAA0008F3BBB8D416 (SetDrawOrigin)
+-- =====================================================================
+function Draw3DText(x, y, z, text, r, g, b, a)
+    local onScreen, _x, _y = GetScreenCoordFromWorldCoord(x, y, z)
+    if onScreen then
+        SetTextScale(0.35, 0.35)
+        SetTextFont(4)
+        SetTextProportional(1)
+        SetTextColour(r or 255, g or 255, b or 255, a or 255)
+        SetTextCentre(1)
+        SetTextOutline()
+        SetTextEntry('STRING')
+        AddTextComponentString(text)
+        DrawText(_x, _y)
+    end
 end
 
 -- =====================================================================
@@ -728,7 +748,7 @@ function Slider(slider, x, y, dum)
     local CROCK_cursor_x, CROCK_cursor_y = GetMousePos()
     local CROCK_scroolsx, CROCK_scroolsr = x - (0.5 - 0.460), x + ((0.530 + (CROCK_drag_w / 2)) - 0.5)
     local CROCK_xx, CROCK_yy = x - (0.5 - 0.553), y + ((0.490 + (CROCK_drag_w / 2)) - 0.5)
-    DrawRectangle((CROCK_drag_w / 2) / 2 + x + 0.0005 + (slider.value / (slider.max / CROCK_W_) / 2) - CROCK_W_ / 2,
+    DrawRect((CROCK_drag_w / 2) / 2 + x + 0.0005 + (slider.value / (slider.max / CROCK_W_) / 2) - CROCK_W_ / 2,
         y, (slider.value / (slider.max / CROCK_W_)), 0.0090, 30, 255, 30, 255)
     SetTextOutline()
     DrawTxtColors('•', CROCK_i_x, CROCK_i_y, false, 1.75, 4, false, 30, 255, 30, 255)
@@ -928,9 +948,9 @@ function Retangulo(posX, posY, largura, altura, corR, corG, corB, corA)
     local screenX, screenY = 1 / screenWidth, 1 / screenHeight
     local normalizedPosX, normalizedPosY = screenX * posX, screenY * posY
     local normalizedWidth, normalizedHeight = screenX * largura, screenY * altura
-    DrawRectangle(normalizedPosX + normalizedWidth / 2,
-                  normalizedPosY + normalizedHeight / 2,
-                  normalizedWidth, normalizedHeight, corR, corG, corB, corA)
+    DrawRect(normalizedPosX + normalizedWidth / 2,
+              normalizedPosY + normalizedHeight / 2,
+              normalizedWidth, normalizedHeight, corR, corG, corB, corA)
 end
 
 -- =====================================================================
@@ -987,10 +1007,6 @@ function ColorPicker(R, aJ, aK)
         end
         Citizen.Wait(3)
     end
-end
-
-function DrawRectangle(x, y, width, height, red, green, blue, alpha)
-    return Citizen.InvokeNative(0x3A618A217E5154F0, x, y, width, height, red, green, blue, alpha)
 end
 
 -- =====================================================================
@@ -1498,8 +1514,9 @@ end
 function Pedg()
     local dist, ent, sret, ssx, ssy, bc = 10000000, nil
     local selfPed = PlayerPedId()
-    for i = 1, #GetGamePool(CROCK.GamePools[1]) do
-        local GgP = GetGamePool(CROCK.GamePools[1])[i]
+    local pool = GetGamePool(CROCK.GamePools[1])
+    for i = 1, #pool do
+        local GgP = pool[i]
         if GgP ~= selfPed then
             local c = GetPedBoneCoords(GgP, 31086)
             local os, sx, sy = GetScreenCoordFromWorldCoord(c.x, c.y, c.z)
@@ -1607,8 +1624,8 @@ end
 
 function DrawCursorCamLivre()
     local _, CROCK_res_y = GetActiveScreenResolution()
-    DrawRectangle(0.5, 0.5, 0.007, 2/CROCK_res_y, 255, 255, 255, 255)
-    DrawRectangle(0.5, 0.5, 2/CROCK_res_x or 0.002, 0.007*1.8, 255, 255, 255, 255)
+    DrawRect(0.5, 0.5, 0.007, 2/CROCK_res_y, 255, 255, 255, 255)
+    DrawRect(0.5, 0.5, 2/CROCK_res_x or 0.002, 0.007*1.8, 255, 255, 255, 255)
 end
 
 -- =====================================================================
@@ -1660,7 +1677,7 @@ end
 
 function SetVehicleCustom(vehicle, colorR, colorG, colorB, neonR, neonG, neonB)
     if not DoesEntityExist(vehicle) then return end
-    SetVehicleColours(vehicle, colorR, colorG)
+    SetVehicleCustomPrimaryColour(vehicle, colorR, colorG, colorB)
     SetVehicleNeonLightColour(vehicle, neonR, neonG, neonB)
     ToggleVehicleMod(vehicle, 22, true)
     SetVehicleWindowTint(vehicle, 1)
@@ -2061,7 +2078,7 @@ function ToggleGodMode()
 end
 
 -- INVISIBILIDADE
-function ToggleInvisivel()
+function toggleInvisivel()
     ToggleInvisivel = not ToggleInvisivel
     SetEntityVisible(PlayerPedId(), not ToggleInvisivel, false)
     SetPlayerInvisibleLocally(PlayerId(), ToggleInvisivel)
@@ -2486,7 +2503,11 @@ function MenuPrincipal()
         JogadorY = JogadorY + JogadorAdd
         if JogadorY >= 0.220 and JogadorY <= JogadorMax then
             local newVal = CheckBox('Invisível', 0.410+CROCKX, JogadorY + CROCKY, ToggleInvisivel)
-            if ToggleInvisivel ~= newVal then ToggleInvisivel = newVal; SomClick(); ToggleInvisivel() end
+            if ToggleInvisivel ~= newVal then ToggleInvisivel = newVal; SomClick();
+                SetEntityVisible(PlayerPedId(), not ToggleInvisivel, false)
+                SetPlayerInvisibleLocally(PlayerId(), ToggleInvisivel)
+                if ToggleInvisivel then NotifySucesso('Invisível: ON') else NotifySucesso('Invisível: OFF') end
+            end
         end
         JogadorY = JogadorY + JogadorAdd
         if JogadorY >= 0.220 and JogadorY <= JogadorMax then
@@ -2809,7 +2830,7 @@ RegisterCommand('legit', function()
 end)
 
 RegisterCommand('invisivel', function()
-    ToggleInvisivel()
+    toggleInvisivel()
 end)
 
 RegisterCommand('superpulo', function()
